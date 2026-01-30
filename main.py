@@ -1,45 +1,95 @@
-from fastapi import FastAPI, Request
-import httpx
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import PlainTextResponse, JSONResponse
+import vonage
 import os
+from claude_handler import handle_message
+from config import Config
 
-app = FastAPI()
+app = FastAPI(title="COYOTE - AI Chief of Staff")
+
+# Vonage client
+vonage_client = None
+if Config.VONAGE_API_KEY and Config.VONAGE_API_SECRET:
+    vonage_client = vonage.Client(
+        key=Config.VONAGE_API_KEY,
+        secret=Config.VONAGE_API_SECRET
+    )
+    sms = vonage.Sms(vonage_client)
 
 @app.get("/")
+def root():
+    return {"status": "COYOTE is alive", "integrations": Config.validate()}
+
+@app.get("/health")
 def health():
-    return {"status": "COYOTE online 🐺"}
+    return {"status": "healthy", "integrations": Config.validate()}
 
 @app.post("/webhook/inbound")
 async def inbound_sms(request: Request):
-    data = await request.form()
-    message = data.get("text", "")
-    sender = data.get("msisdn", "")
-    
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": os.environ["ANTHROPIC_API_KEY"],
-                "content-type": "application/json",
-                "anthropic-version": "2023-06-01"
-            },
-            json={
-                "model": "claude-sonnet-4-20250514",
-                "max_tokens": 300,
-                "system": "You are COYOTE 🐺, Blake's AI chief of staff. Be concise - SMS limits. Sign with 🐺",
-                "messages": [{"role": "user", "content": message}]
-            }
-        )
-        reply = response.json()["content"][0]["text"]
-    
-    async with httpx.AsyncClient() as client:
-        await client.post(
-            "https://rest.nexmo.com/sms/json",
-            data={
-                "api_key": os.environ["VONAGE_API_KEY"],
-                "api_secret": os.environ["VONAGE_API_SECRET"],
-                "from": os.environ["VONAGE_FROM_NUMBER"],
-                "to": sender,
-                "text": reply[:160]
-            }
-        )
-    return {"status": "ok"}
+    """Handle incoming SMS from Vonage"""
+    try:
+        # Parse form data or JSON
+        content_type = request.headers.get("content-type", "")
+
+        if "application/json" in content_type:
+            data = await request.json()
+        else:
+            form = await request.form()
+            data = dict(form)
+
+        # Extract message details
+        from_number = data.get("msisdn") or data.get("from")
+        text = data.get("text") or data.get("message", "")
+
+        if not text:
+            return PlainTextResponse("OK")
+
+        print(f"📱 Incoming from {from_number}: {text}")
+
+        # Process with Claude + tools
+        response = handle_message(text)
+
+        print(f"🐺 Response: {response}")
+
+        # Send SMS reply
+        if vonage_client and from_number:
+            # Truncate to 160 chars for SMS
+            sms_response = response[:157] + "..." if len(response) > 160 else response
+
+            sms.send_message({
+                "from": Config.VONAGE_PHONE_NUMBER,
+                "to": from_number,
+                "text": sms_response
+            })
+
+        return PlainTextResponse("OK")
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return PlainTextResponse("OK")
+
+@app.post("/webhook/status")
+async def status_webhook(request: Request):
+    """Handle delivery receipts"""
+    return PlainTextResponse("OK")
+
+@app.post("/test")
+async def test_message(request: Request):
+    """Test endpoint - send a message without SMS"""
+    try:
+        data = await request.json()
+        message = data.get("message", "status")
+        response = handle_message(message)
+        return {"input": message, "response": response}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/test/{message}")
+async def test_get(message: str):
+    """GET test endpoint"""
+    response = handle_message(message)
+    return {"input": message, "response": response}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))

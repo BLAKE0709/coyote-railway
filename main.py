@@ -9,12 +9,24 @@ app = FastAPI(title="COYOTE - AI Chief of Staff")
 
 # Vonage client
 vonage_client = None
+sms = None
 if Config.VONAGE_API_KEY and Config.VONAGE_API_SECRET:
-    vonage_client = vonage.Client(
-        key=Config.VONAGE_API_KEY,
-        secret=Config.VONAGE_API_SECRET
-    )
-    sms = vonage.Sms(vonage_client)
+    try:
+        # Try new Vonage SDK v3+ syntax
+        from vonage_sms import SmsClient
+        vonage_client = SmsClient(
+            api_key=Config.VONAGE_API_KEY,
+            api_secret=Config.VONAGE_API_SECRET
+        )
+        sms = vonage_client
+    except (ImportError, AttributeError):
+        # Fallback to old syntax (if older version installed)
+        import vonage
+        vonage_client = vonage.Client(
+            key=Config.VONAGE_API_KEY,
+            secret=Config.VONAGE_API_SECRET
+        )
+        sms = vonage.Sms(vonage_client)
 
 @app.get("/")
 def root():

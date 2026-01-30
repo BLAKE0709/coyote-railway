@@ -56,6 +56,7 @@ async def inbound_sms(request: Request):
         print(f"🐺 Response: {response}")
 
         # Send SMS reply
+        print(f"🔍 Debug: vonage_client={vonage_client is not None}, phone={Config.VONAGE_PHONE_NUMBER}")
         if vonage_client and Config.VONAGE_PHONE_NUMBER:
             try:
                 result = vonage_client.sms.send_message({

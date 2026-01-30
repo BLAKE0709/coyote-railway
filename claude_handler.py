@@ -3,7 +3,11 @@ import json
 import os
 from tools import gmail, calendar, drive, swarm, revenue
 
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+# Get API key and log for debugging
+api_key = os.environ.get("ANTHROPIC_API_KEY")
+print(f"🔑 API Key found: {bool(api_key)}, Length: {len(api_key) if api_key else 0}")
+
+client = anthropic.Anthropic(api_key=api_key)
 
 TOOLS = [
     {

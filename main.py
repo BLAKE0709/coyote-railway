@@ -65,7 +65,7 @@ async def inbound_sms(request: Request):
         print(f"🔍 Debug: vonage_client={vonage_client is not None}, phone={Config.VONAGE_PHONE_NUMBER}")
         if vonage_client and Config.VONAGE_PHONE_NUMBER:
             try:
-                result = vonage_client.sms.send_message({
+                result = vonage_client.sms.send({
                     "from": Config.VONAGE_PHONE_NUMBER,
                     "to": from_number,
                     "text": response[:160]  # SMS char limit

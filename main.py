@@ -1,23 +1,22 @@
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import PlainTextResponse, JSONResponse
-import vonage
 import os
 from claude_handler import handle_message
 from config import Config
 
 app = FastAPI(title="COYOTE - AI Chief of Staff")
 
-# Vonage SMS - make it optional so app can start even if Vonage fails
+# Vonage SMS - completely optional, won't crash if not available
 vonage_sms = None
+print("🔧 Initializing Vonage SMS...")
 try:
     if Config.VONAGE_API_KEY and Config.VONAGE_API_SECRET:
-        from vonage import Client
-        vonage_client = Client(key=Config.VONAGE_API_KEY, secret=Config.VONAGE_API_SECRET)
-        from vonage import Sms
-        vonage_sms = Sms(vonage_client)
-        print("✅ Vonage SMS initialized")
+        print(f"🔑 Vonage credentials found")
+        import vonage_sms as vs
+        vonage_sms = vs.Sms(api_key=Config.VONAGE_API_KEY, api_secret=Config.VONAGE_API_SECRET)
+        print("✅ Vonage SMS initialized successfully")
 except Exception as e:
-    print(f"⚠️ Vonage not available: {e}")
+    print(f"⚠️ Vonage SMS not available (app will still work): {e}")
     vonage_sms = None
 
 @app.get("/")

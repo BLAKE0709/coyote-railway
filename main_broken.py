@@ -1,10 +1,23 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Form
 from fastapi.responses import PlainTextResponse, JSONResponse
 import os
 from claude_handler import handle_message
 from config import Config
 
 app = FastAPI(title="COYOTE - AI Chief of Staff")
+
+# Vonage SMS - completely optional, won't crash if not available
+vonage_sms = None
+print("🔧 Initializing Vonage SMS...")
+try:
+    if Config.VONAGE_API_KEY and Config.VONAGE_API_SECRET:
+        print(f"🔑 Vonage credentials found")
+        import vonage_sms as vs
+        vonage_sms = vs.Sms(api_key=Config.VONAGE_API_KEY, api_secret=Config.VONAGE_API_SECRET)
+        print("✅ Vonage SMS initialized successfully")
+except Exception as e:
+    print(f"⚠️ Vonage SMS not available (app will still work): {e}")
+    vonage_sms = None
 
 @app.get("/")
 def root():
@@ -41,8 +54,20 @@ async def inbound_sms(request: Request):
 
         print(f"🐺 Response: {response}")
 
-        # TODO: Send SMS reply (Vonage integration coming)
-        print(f"⚠️ SMS sending disabled - response: {response[:100]}")
+        # Send SMS reply
+        if vonage_sms and from_number:
+            try:
+                # Truncate to 160 chars for SMS
+                sms_response = response[:157] + "..." if len(response) > 160 else response
+
+                vonage_sms.send_message({
+                    "from": Config.VONAGE_PHONE_NUMBER,
+                    "to": from_number,
+                    "text": sms_response
+                })
+                print(f"✅ SMS sent to {from_number}")
+            except Exception as e:
+                print(f"❌ Failed to send SMS: {e}")
 
         return PlainTextResponse("OK")
 

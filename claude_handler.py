@@ -1,8 +1,9 @@
 import anthropic
 import json
+import os
 from tools import gmail, calendar, drive, swarm, revenue
 
-client = anthropic.Anthropic()
+client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 TOOLS = [
     {

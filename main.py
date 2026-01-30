@@ -8,23 +8,22 @@ app = FastAPI(title="COYOTE - AI Chief of Staff")
 
 # Debug environment variables
 print(f"🔍 ENV Check:")
-print(f"  VONAGE_PHONE_NUMBER from os.getenv: {os.getenv('VONAGE_PHONE_NUMBER')}")
-print(f"  VONAGE_PHONE_NUMBER from Config: {Config.VONAGE_PHONE_NUMBER}")
-print(f"  All VONAGE vars: API_KEY={bool(Config.VONAGE_API_KEY)}, SECRET={bool(Config.VONAGE_API_SECRET)}, PHONE={Config.VONAGE_PHONE_NUMBER}")
+print(f"  TWILIO_PHONE_NUMBER from os.getenv: {os.getenv('TWILIO_PHONE_NUMBER')}")
+print(f"  TWILIO_PHONE_NUMBER from Config: {Config.TWILIO_PHONE_NUMBER}")
+print(f"  All TWILIO vars: SID={bool(Config.TWILIO_ACCOUNT_SID)}, TOKEN={bool(Config.TWILIO_AUTH_TOKEN)}, PHONE={Config.TWILIO_PHONE_NUMBER}")
 
-# Initialize Vonage SMS
-vonage_client = None
+# Initialize Twilio SMS
+twilio_client = None
 try:
-    from vonage import Vonage, Auth
-    if Config.VONAGE_API_KEY and Config.VONAGE_API_SECRET:
-        print("🔧 Initializing Vonage SMS...")
-        auth = Auth(api_key=Config.VONAGE_API_KEY, api_secret=Config.VONAGE_API_SECRET)
-        vonage_client = Vonage(auth=auth)
-        print("✅ Vonage SMS ready")
+    from twilio.rest import Client
+    if Config.TWILIO_ACCOUNT_SID and Config.TWILIO_AUTH_TOKEN:
+        print("🔧 Initializing Twilio SMS...")
+        twilio_client = Client(Config.TWILIO_ACCOUNT_SID, Config.TWILIO_AUTH_TOKEN)
+        print("✅ Twilio SMS ready")
     else:
-        print("⚠️ Vonage credentials missing")
+        print("⚠️ Twilio credentials missing")
 except Exception as e:
-    print(f"⚠️ Vonage SMS not available (app will still work): {e}")
+    print(f"⚠️ Twilio SMS not available (app will still work): {e}")
 
 @app.get("/")
 def root():
@@ -36,7 +35,7 @@ def health():
 
 @app.api_route("/webhook/inbound", methods=["GET", "POST"])
 async def inbound_sms(request: Request):
-    """Handle incoming SMS from Vonage"""
+    """Handle incoming SMS from Twilio"""
     try:
         # Parse GET params, form data, or JSON
         if request.method == "GET":
@@ -47,9 +46,9 @@ async def inbound_sms(request: Request):
             form = await request.form()
             data = dict(form)
 
-        # Extract message details
-        from_number = data.get("msisdn") or data.get("from")
-        text = data.get("text") or data.get("message", "")
+        # Extract message details (Twilio uses From/Body, Vonage used msisdn/text)
+        from_number = data.get("From") or data.get("msisdn") or data.get("from")
+        text = data.get("Body") or data.get("text") or data.get("message", "")
 
         if not text:
             return PlainTextResponse("OK")
@@ -61,21 +60,21 @@ async def inbound_sms(request: Request):
 
         print(f"🐺 Response: {response}")
 
-        # Send SMS reply
-        print(f"🔍 Debug: vonage_client={vonage_client is not None}, phone={Config.VONAGE_PHONE_NUMBER}")
-        if vonage_client and Config.VONAGE_PHONE_NUMBER:
+        # Send SMS reply via Twilio
+        print(f"🔍 Debug: twilio_client={twilio_client is not None}, phone={Config.TWILIO_PHONE_NUMBER}")
+        if twilio_client and Config.TWILIO_PHONE_NUMBER:
             try:
-                result = vonage_client.sms.send({
-                    "from_": Config.VONAGE_PHONE_NUMBER,
-                    "to": from_number,
-                    "text": response[:160]  # SMS char limit
-                })
+                message = twilio_client.messages.create(
+                    body=response[:1600],  # Twilio handles segmentation, but let's be reasonable
+                    from_=Config.TWILIO_PHONE_NUMBER,
+                    to=from_number
+                )
                 print(f"✅ SMS sent to {from_number}")
-                print(f"📊 Result: {result}")
+                print(f"📊 Message SID: {message.sid}")
             except Exception as e:
                 print(f"❌ SMS send error: {e}")
         else:
-            print(f"⚠️ SMS sending disabled - Vonage not initialized")
+            print(f"⚠️ SMS sending disabled - Twilio not initialized")
 
         return PlainTextResponse("OK")
 

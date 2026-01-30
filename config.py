@@ -8,10 +8,10 @@ class Config:
     # Anthropic
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
-    # Vonage SMS
-    VONAGE_API_KEY = os.getenv("VONAGE_API_KEY")
-    VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET")
-    VONAGE_PHONE_NUMBER = os.getenv("VONAGE_PHONE_NUMBER") or "19498177088"  # Fallback
+    # Twilio SMS
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+    TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 
     # Google - stored as single JSON string in Railway
     GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
@@ -33,7 +33,7 @@ class Config:
     def validate(cls) -> dict:
         return {
             "anthropic": bool(cls.ANTHROPIC_API_KEY),
-            "vonage": bool(cls.VONAGE_API_KEY and cls.VONAGE_API_SECRET),
+            "twilio": bool(cls.TWILIO_ACCOUNT_SID and cls.TWILIO_AUTH_TOKEN),
             "google": bool(cls.GOOGLE_CREDENTIALS_JSON),
             "supabase": bool(cls.SUPABASE_URL and cls.SUPABASE_KEY)
         }

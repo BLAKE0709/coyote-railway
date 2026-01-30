@@ -6,6 +6,12 @@ from config import Config
 
 app = FastAPI(title="COYOTE - AI Chief of Staff")
 
+# Debug environment variables
+print(f"🔍 ENV Check:")
+print(f"  VONAGE_PHONE_NUMBER from os.getenv: {os.getenv('VONAGE_PHONE_NUMBER')}")
+print(f"  VONAGE_PHONE_NUMBER from Config: {Config.VONAGE_PHONE_NUMBER}")
+print(f"  All VONAGE vars: API_KEY={bool(Config.VONAGE_API_KEY)}, SECRET={bool(Config.VONAGE_API_SECRET)}, PHONE={Config.VONAGE_PHONE_NUMBER}")
+
 # Initialize Vonage SMS
 vonage_client = None
 try:

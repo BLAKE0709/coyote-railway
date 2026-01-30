@@ -11,7 +11,7 @@ class Config:
     # Vonage SMS
     VONAGE_API_KEY = os.getenv("VONAGE_API_KEY")
     VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET")
-    VONAGE_PHONE_NUMBER = os.getenv("VONAGE_PHONE_NUMBER")
+    VONAGE_PHONE_NUMBER = os.getenv("VONAGE_PHONE_NUMBER") or "19498177088"  # Fallback
 
     # Google - stored as single JSON string in Railway
     GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")

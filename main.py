@@ -70,10 +70,8 @@ async def inbound_sms(request: Request):
                     "to": from_number,
                     "text": response[:160]  # SMS char limit
                 })
-                if result["messages"][0]["status"] == "0":
-                    print(f"✅ SMS sent to {from_number}")
-                else:
-                    print(f"⚠️ SMS failed: {result['messages'][0]['error-text']}")
+                print(f"✅ SMS sent to {from_number}")
+                print(f"📊 Result: {result}")
             except Exception as e:
                 print(f"❌ SMS send error: {e}")
         else:

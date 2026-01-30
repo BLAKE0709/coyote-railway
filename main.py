@@ -13,7 +13,7 @@ async def inbound_sms(request: Request):
     data = await request.form()
     message = data.get("text", "")
     sender = data.get("msisdn", "")
-
+    
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://api.anthropic.com/v1/messages",
@@ -30,7 +30,7 @@ async def inbound_sms(request: Request):
             }
         )
         reply = response.json()["content"][0]["text"]
-
+    
     async with httpx.AsyncClient() as client:
         await client.post(
             "https://rest.nexmo.com/sms/json",

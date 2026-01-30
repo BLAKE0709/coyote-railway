@@ -7,26 +7,18 @@ from config import Config
 
 app = FastAPI(title="COYOTE - AI Chief of Staff")
 
-# Vonage client
-vonage_client = None
-sms = None
-if Config.VONAGE_API_KEY and Config.VONAGE_API_SECRET:
-    try:
-        # Try new Vonage SDK v3+ syntax
-        from vonage_sms import SmsClient
-        vonage_client = SmsClient(
-            api_key=Config.VONAGE_API_KEY,
-            api_secret=Config.VONAGE_API_SECRET
-        )
-        sms = vonage_client
-    except (ImportError, AttributeError):
-        # Fallback to old syntax (if older version installed)
-        import vonage
-        vonage_client = vonage.Client(
-            key=Config.VONAGE_API_KEY,
-            secret=Config.VONAGE_API_SECRET
-        )
-        sms = vonage.Sms(vonage_client)
+# Vonage SMS - make it optional so app can start even if Vonage fails
+vonage_sms = None
+try:
+    if Config.VONAGE_API_KEY and Config.VONAGE_API_SECRET:
+        from vonage import Client
+        vonage_client = Client(key=Config.VONAGE_API_KEY, secret=Config.VONAGE_API_SECRET)
+        from vonage import Sms
+        vonage_sms = Sms(vonage_client)
+        print("✅ Vonage SMS initialized")
+except Exception as e:
+    print(f"⚠️ Vonage not available: {e}")
+    vonage_sms = None
 
 @app.get("/")
 def root():
@@ -64,15 +56,19 @@ async def inbound_sms(request: Request):
         print(f"🐺 Response: {response}")
 
         # Send SMS reply
-        if vonage_client and from_number:
-            # Truncate to 160 chars for SMS
-            sms_response = response[:157] + "..." if len(response) > 160 else response
+        if vonage_sms and from_number:
+            try:
+                # Truncate to 160 chars for SMS
+                sms_response = response[:157] + "..." if len(response) > 160 else response
 
-            sms.send_message({
-                "from": Config.VONAGE_PHONE_NUMBER,
-                "to": from_number,
-                "text": sms_response
-            })
+                vonage_sms.send_message({
+                    "from": Config.VONAGE_PHONE_NUMBER,
+                    "to": from_number,
+                    "text": sms_response
+                })
+                print(f"✅ SMS sent to {from_number}")
+            except Exception as e:
+                print(f"❌ Failed to send SMS: {e}")
 
         return PlainTextResponse("OK")
 

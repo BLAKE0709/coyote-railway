@@ -6,6 +6,20 @@ from config import Config
 
 app = FastAPI(title="COYOTE - AI Chief of Staff")
 
+# Initialize Vonage SMS
+vonage_client = None
+try:
+    from vonage import Vonage, Auth
+    if Config.VONAGE_API_KEY and Config.VONAGE_API_SECRET:
+        print("🔧 Initializing Vonage SMS...")
+        auth = Auth(api_key=Config.VONAGE_API_KEY, api_secret=Config.VONAGE_API_SECRET)
+        vonage_client = Vonage(auth=auth)
+        print("✅ Vonage SMS ready")
+    else:
+        print("⚠️ Vonage credentials missing")
+except Exception as e:
+    print(f"⚠️ Vonage SMS not available (app will still work): {e}")
+
 @app.get("/")
 def root():
     return {"status": "COYOTE is alive", "integrations": Config.validate()}
@@ -41,8 +55,22 @@ async def inbound_sms(request: Request):
 
         print(f"🐺 Response: {response}")
 
-        # TODO: Send SMS reply (Vonage integration coming)
-        print(f"⚠️ SMS sending disabled - response: {response[:100]}")
+        # Send SMS reply
+        if vonage_client and Config.VONAGE_PHONE_NUMBER:
+            try:
+                result = vonage_client.sms.send_message({
+                    "from": Config.VONAGE_PHONE_NUMBER,
+                    "to": from_number,
+                    "text": response[:160]  # SMS char limit
+                })
+                if result["messages"][0]["status"] == "0":
+                    print(f"✅ SMS sent to {from_number}")
+                else:
+                    print(f"⚠️ SMS failed: {result['messages'][0]['error-text']}")
+            except Exception as e:
+                print(f"❌ SMS send error: {e}")
+        else:
+            print(f"⚠️ SMS sending disabled - Vonage not initialized")
 
         return PlainTextResponse("OK")
 

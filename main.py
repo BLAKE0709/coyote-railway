@@ -24,14 +24,14 @@ def root():
 def health():
     return {"status": "healthy", "integrations": Config.validate()}
 
-@app.post("/webhook/inbound")
+@app.api_route("/webhook/inbound", methods=["GET", "POST"])
 async def inbound_sms(request: Request):
     """Handle incoming SMS from Vonage"""
     try:
-        # Parse form data or JSON
-        content_type = request.headers.get("content-type", "")
-
-        if "application/json" in content_type:
+        # Parse GET params, form data, or JSON
+        if request.method == "GET":
+            data = dict(request.query_params)
+        elif "application/json" in request.headers.get("content-type", ""):
             data = await request.json()
         else:
             form = await request.form()

@@ -1,0 +1,112 @@
+version: '2.5'
+agent_skills:
+  vega:
+    name: VEGA - Strategic CFO
+    description: Financial modeling, tax strategy, investor communications
+    triggers:
+    - financial
+    - investor
+    - tax
+    - revenue
+    - model
+    - valuation
+    - unit economics
+    priority: 90
+    token_budget: 2000
+    agent_file: agents/vega.md
+  mason:
+    name: MASON - VP Business Development
+    description: Prospect research, deal origination, site qualification
+    triggers:
+    - prospect
+    - lead
+    - site
+    - deal
+    - partner
+    - cement
+    - industrial
+    priority: 85
+    token_budget: 1500
+    agent_file: agents/mason.md
+  prophet:
+    name: PROPHET - Lead Generation
+    description: Permit scraping, contractor leads, market intelligence
+    triggers:
+    - permit
+    - contractor
+    - construction
+    - leads
+    priority: 80
+    token_budget: 1000
+    agent_file: agents/prophet.md
+  sentinel:
+    name: SENTINEL - Monitoring
+    description: System monitoring, alerting, anomaly detection
+    triggers:
+    - monitor
+    - alert
+    - system
+    - health
+    - anomaly
+    priority: 95
+    token_budget: 500
+    agent_file: agents/sentinel.md
+  arbiter:
+    name: ARBITER - Government Contracting
+    description: SAM.gov monitoring, RFP analysis, compliance
+    triggers:
+    - government
+    - contract
+    - rfp
+    - sam.gov
+    - federal
+    - compliance
+    priority: 85
+    token_budget: 1500
+    agent_file: agents/arbiter.md
+domain_skills:
+  atlas_thermal:
+    name: Atlas Industrial Context
+    description: Thermal symbiosis, ORC technology, cement industry knowledge
+    triggers:
+    - atlas
+    - thermal
+    - orc
+    - waste heat
+    - cement
+    - midlothian
+    - quikrete
+    priority: 100
+    token_budget: 1000
+    skill_file: skills/atlas-thermal.md
+workflow_skills:
+  deal_qualification:
+    name: Deal Qualification Workflow
+    description: Full process for qualifying a new industrial site
+    triggers:
+    - qualify site
+    - new prospect
+    - deal qualification
+    priority: 90
+    token_budget: 1500
+    skill_file: skills/deal-qualification.md
+    steps:
+    - MASON researches site
+    - VEGA models economics
+    - Review with Blake
+  morning_briefing:
+    name: Morning Briefing
+    description: Daily status synthesis across all systems
+    triggers:
+    - morning
+    - briefing
+    - daily update
+    - status
+    priority: 95
+    token_budget: 2000
+    skill_file: skills/morning-briefing.md
+settings:
+  max_skills_per_context: 5
+  total_token_budget: 4000
+  auto_detect: true
+  log_skill_usage: true

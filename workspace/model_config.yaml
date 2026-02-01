@@ -1,0 +1,152 @@
+# COYOTE V2.5 MODEL ROUTING CONFIG
+# Use the right model for the job - save money, maintain quality
+
+version: "2.5"
+last_updated: "2026-01-31"
+
+# =============================================================================
+# MODEL DEFINITIONS
+# =============================================================================
+
+models:
+  haiku:
+    id: "claude-3-5-haiku-20241022"
+    cost_per_million_input: 0.25
+    cost_per_million_output: 1.25
+    max_tokens: 8192
+    strengths:
+      - "quick lookups"
+      - "simple formatting"
+      - "data extraction"
+      - "classification"
+      - "high-volume tasks"
+
+  sonnet:
+    id: "claude-sonnet-4-20250514"
+    cost_per_million_input: 3.00
+    cost_per_million_output: 15.00
+    max_tokens: 16384
+    strengths:
+      - "balanced reasoning"
+      - "code generation"
+      - "email drafting"
+      - "analysis"
+      - "general tasks"
+
+  opus:
+    id: "claude-opus-4-20250514"
+    cost_per_million_input: 15.00
+    cost_per_million_output: 75.00
+    max_tokens: 32768
+    strengths:
+      - "complex reasoning"
+      - "strategic decisions"
+      - "nuanced communication"
+      - "multi-step planning"
+      - "critical analysis"
+
+# =============================================================================
+# ROUTING RULES
+# =============================================================================
+
+routing:
+  # Default model when no specific rule matches
+  default: "sonnet"
+
+  # Route by task type (regex patterns)
+  by_task_type:
+    # Quick/simple tasks → Haiku (cheapest)
+    - pattern: "classify|categorize|extract|lookup|format|parse|list|count"
+      model: "haiku"
+      reason: "Simple extraction/classification task"
+
+    # Standard tasks → Sonnet (balanced)
+    - pattern: "draft|write|analyze|summarize|code|review|explain|help"
+      model: "sonnet"
+      reason: "Standard reasoning task"
+
+    # Complex tasks → Opus (most capable)
+    - pattern: "strategic|negotiate|complex|critical|investor|legal|synthesize"
+      model: "opus"
+      reason: "Complex strategic task"
+
+  # Route by agent (default model for each agent)
+  by_agent:
+    coyote: "sonnet"      # Chief of staff - balanced intelligence
+    vega: "sonnet"        # Financial - needs accuracy
+    mason: "haiku"        # Research - high volume, simple lookups
+    prophet: "haiku"      # Lead gen - very high volume
+    sentinel: "haiku"     # Monitoring - quick checks
+    arbiter: "sonnet"     # GovCon - needs precision for compliance
+
+  # Route by estimated token count
+  complexity_thresholds:
+    - max_tokens: 500
+      model: "haiku"
+    - max_tokens: 2000
+      model: "sonnet"
+    - max_tokens: 10000
+      model: "opus"
+
+# =============================================================================
+# BUDGET CONTROLS
+# =============================================================================
+
+budget:
+  # Overall daily limit
+  daily_limit_usd: 50.00
+
+  # Alert when spending reaches this percentage
+  alert_at_percent: 80
+
+  # Per-agent daily limits
+  agent_limits:
+    coyote: 20.00         # Chief of staff gets most budget
+    vega: 10.00           # Financial analysis is important
+    mason: 5.00           # Research should be efficient
+    prophet: 5.00         # Lead gen is high volume, low cost
+    sentinel: 5.00        # Monitoring is cheap
+    arbiter: 5.00         # GovCon needs some budget
+
+# =============================================================================
+# COST TRACKING
+# =============================================================================
+
+tracking:
+  # Log every API call with cost
+  log_every_call: true
+
+  # Generate daily summary
+  daily_summary: true
+
+  # Generate weekly report
+  weekly_report: true
+
+  # Alert methods for budget warnings
+  alert_methods:
+    - "sms"
+    - "log"
+
+# =============================================================================
+# OVERRIDE RULES
+# =============================================================================
+
+overrides:
+  # Force Opus for these keywords regardless of other rules
+  force_opus:
+    - "investor meeting"
+    - "board presentation"
+    - "strategic decision"
+    - "contract negotiation"
+
+  # Never use Opus for these (cost protection)
+  never_opus:
+    - "routine check"
+    - "status update"
+    - "simple lookup"
+
+  # Always use Haiku for these (efficiency)
+  force_haiku:
+    - "heartbeat"
+    - "monitoring"
+    - "log parsing"

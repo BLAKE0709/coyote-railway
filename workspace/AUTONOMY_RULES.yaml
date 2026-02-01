@@ -1,0 +1,222 @@
+# COYOTE V2.5 AUTONOMY RULES
+# What the swarm can do without Blake's approval
+
+version: "2.5"
+last_updated: "2026-01-31"
+
+# =============================================================================
+# GLOBAL RULES (Apply to all agents)
+# =============================================================================
+
+global:
+  # Financial limits
+  max_spend_autonomous: 50        # USD - can spend up to this without approval
+  max_spend_notify: 500           # USD - can spend up to this with notification
+  # Above this requires approval
+
+  # Communication limits
+  max_emails_per_hour: 10         # Rate limit on outbound emails
+  max_alerts_per_hour: 5          # Don't spam Blake
+
+  # Time boundaries
+  quiet_hours_start: "22:00"      # 10 PM - reduce notifications
+  quiet_hours_end: "07:00"        # 7 AM
+  quiet_hours_action: "batch"     # "batch" notifications, "emergency_only", or "normal"
+
+  # Default autonomy
+  default_level: "notify"         # Default for unlisted actions
+
+# =============================================================================
+# ACTION-SPECIFIC RULES
+# =============================================================================
+
+actions:
+  # --- ALERTS ---
+  alert:
+    sms:
+      level: "autonomous"
+      conditions:
+        - "urgency >= high"
+        - "type in [revenue_opportunity, system_failure, deadline_imminent]"
+      rate_limit: "5/hour"
+
+    email:
+      level: "notify"
+      conditions: []
+
+  # --- RESEARCH ---
+  research:
+    web_search:
+      level: "autonomous"
+      conditions: []
+
+    competitor_analysis:
+      level: "autonomous"
+      conditions: []
+
+    prospect_research:
+      level: "autonomous"
+      conditions: []
+
+  # --- COMMUNICATION ---
+  communication:
+    draft_email:
+      level: "autonomous"         # Can draft without approval
+      conditions: []
+
+    send_email:
+      level: "approval_required"  # Must approve before sending
+      conditions: []
+      override_to_notify:         # These recipients can be notified instead
+        - "team@atlasindustrial.ai"
+        - "internal lists"
+
+    send_follow_up:
+      level: "notify"             # Can send follow-ups with notification
+      conditions:
+        - "original_email_approved == true"
+        - "days_since_original <= 7"
+
+  # --- CODE EXECUTION ---
+  code:
+    read_only:
+      level: "autonomous"
+      conditions: []
+
+    write_files:
+      level: "notify"
+      conditions:
+        - "directory in [workspace, temp, outputs]"
+      approval_required_if:
+        - "directory in [src, config, production]"
+
+    deploy:
+      level: "approval_required"
+      conditions: []
+
+    git_commit:
+      level: "notify"
+      conditions:
+        - "branch != main"
+      approval_required_if:
+        - "branch == main"
+
+  # --- FINANCIAL ---
+  financial:
+    analyze:
+      level: "autonomous"
+      conditions: []
+
+    generate_invoice:
+      level: "notify"
+      conditions: []
+
+    send_invoice:
+      level: "approval_required"
+      conditions: []
+
+    payment:
+      level: "approval_required"
+      conditions: []
+
+# =============================================================================
+# AGENT-SPECIFIC OVERRIDES
+# =============================================================================
+
+agents:
+  coyote:
+    description: "Chief of Staff - highest autonomy"
+    trust_level: "high"
+    overrides:
+      alert.sms:
+        level: "autonomous"
+      communication.send_email:
+        level: "notify"           # COYOTE can send with notification
+        conditions:
+          - "recipient_type == internal"
+
+  vega:
+    description: "Strategic CFO"
+    trust_level: "high"
+    overrides:
+      financial.analyze:
+        level: "autonomous"
+      financial.generate_invoice:
+        level: "autonomous"       # VEGA can generate invoices autonomously
+
+  mason:
+    description: "VP Business Development"
+    trust_level: "medium"
+    overrides:
+      research.prospect_research:
+        level: "autonomous"
+      communication.draft_email:
+        level: "autonomous"
+
+  prophet:
+    description: "Lead Generation"
+    trust_level: "medium"
+    overrides:
+      research.web_search:
+        level: "autonomous"
+
+  sentinel:
+    description: "Monitoring"
+    trust_level: "high"
+    overrides:
+      alert.sms:
+        level: "autonomous"
+        conditions:
+          - "severity >= critical"
+
+  arbiter:
+    description: "Government Contracting"
+    trust_level: "medium"
+    overrides: {}
+
+# =============================================================================
+# ESCALATION RULES
+# =============================================================================
+
+escalation:
+  # When to escalate to Blake regardless of autonomy level
+  always_escalate:
+    - "estimated_impact_usd > 10000"
+    - "involves_external_legal"
+    - "investor_communication"
+    - "press_or_media"
+    - "hiring_or_firing"
+
+  # Escalation chain
+  chain:
+    - agent: "coyote"
+      can_approve:
+        - "routine"
+        - "low_risk"
+    - agent: "blake"
+      can_approve:
+        - "all"
+
+  # How to escalate
+  method:
+    urgent: "sms"
+    normal: "email"
+    batch: "daily_digest"
+
+# =============================================================================
+# LEARNING ADJUSTMENTS
+# =============================================================================
+
+learning:
+  # Automatically adjust autonomy based on outcomes
+  enabled: true
+
+  # If action outcomes are consistently good, increase autonomy
+  promote_threshold:
+    success_rate: 0.95
+    min_samples: 20
+
+  # If action outcomes are consistently bad, decrease autonomy
+  demote_threshold:
+    success_rate: 0.70
+    min_samples: 10

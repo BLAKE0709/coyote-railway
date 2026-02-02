@@ -4,8 +4,8 @@ COYOTE V2.5 - FastAPI Integration
 Combines existing SMS/tool functionality with V2.5 governance pipeline.
 """
 
-from fastapi import FastAPI, Request
-from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import PlainTextResponse, JSONResponse, Response
 from pydantic import BaseModel
 from typing import Optional
 from pathlib import Path
@@ -169,6 +169,76 @@ async def inbound_sms(request: Request):
 async def status_webhook(request: Request):
     """Handle delivery receipts"""
     return PlainTextResponse("OK")
+
+
+# =============================================================================
+# SMS ENDPOINT (TwiML Response)
+# =============================================================================
+
+@app.post("/sms")
+async def sms_webhook(
+    Body: str = Form(default=""),
+    From: str = Form(default="")
+):
+    """
+    Handle incoming SMS from Twilio with TwiML response.
+
+    - Receives Form data (Body, From)
+    - Processes through COYOTE agent
+    - Returns TwiML XML response
+    """
+    try:
+        if not Body:
+            return Response(
+                content='<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+                media_type="application/xml"
+            )
+
+        print(f"[SMS] From {From}: {Body}")
+
+        # Process through V2.5 pipeline for audit/governance
+        result = agent.process(
+            Body,
+            trigger_type=TriggerType.WEBHOOK,
+            trigger_source=f"sms:{From}",
+            requesting_agent="coyote"
+        )
+
+        # Use legacy handler for actual response (has tools)
+        response_text = legacy_handle_message(Body)
+
+        print(f"[COYOTE] {response_text}")
+        print(f"[AUDIT] {result.audit_id} | Model: {result.model_used} | Cost: ${result.cost_usd:.4f}")
+
+        # Truncate response if too long (SMS limit ~1600 chars)
+        if len(response_text) > 1600:
+            response_text = response_text[:1597] + "..."
+
+        # Escape XML special characters
+        response_text = (
+            response_text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&apos;")
+        )
+
+        # Return TwiML response
+        twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>{response_text}</Message>
+</Response>'''
+
+        return Response(content=twiml, media_type="application/xml")
+
+    except Exception as e:
+        print(f"[ERR] SMS endpoint: {e}")
+        error_twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>COYOTE encountered an error. Please try again.</Message>
+</Response>'''
+        return Response(content=error_twiml, media_type="application/xml")
 
 
 # =============================================================================

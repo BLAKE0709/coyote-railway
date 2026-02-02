@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+python-multipart
 anthropic
 twilio
 google-api-python-client

@@ -7,4 +7,4 @@ healthcheckPath = "/health"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
-# Force rebuild Fri, Jan 30, 2026 10:01:07 AM
+# Force rebuild Sat, Feb 01, 2026 10:20:00 PM - added /sms endpoint
